@@ -14,43 +14,7 @@ const DB_SCHEMAS = {
       title: "Test entity",
       description: "Test entity",
       name: indexName,
-      settings: {
-        "analysis": {
-          "analyzer": {
-            "finnish_compound": {
-              "type": "custom",
-              "tokenizer": "standard",
-              "filter": [
-                "lowercase",
-                "finnish_decompounder"
-              ]
-            },
-            "finnish_compound_snowball": {
-              "type": "custom",
-              "tokenizer": "standard",
-              "filter": [
-                "lowercase",
-                "finnish_decompounder",
-                "finnish_snowball"
-              ]
-            }
-          },
-          "filter": {
-            "finnish_decompounder": {
-              "type": "dictionary_decompounder",
-              "word_list": ["test"],
-              "min_word_size": 2,
-              "min_subword_size": 2,
-              "max_subword_size": 15,
-              "only_longest_match": false
-            },
-            "finnish_snowball": {
-              "type": "snowball",
-              "language": "Finnish"
-            }
-          }
-        }
-      }
+      settings: {}
     }
   ],
   mappings: [
