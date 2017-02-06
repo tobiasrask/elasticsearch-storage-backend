@@ -17,6 +17,10 @@ class ElasticsearchStorageHandler extends EntityStorageHandler {
 
    if (variables.hasOwnProperty('indexPrefix'))
       this._registry.set('properties', 'indexPrefix', variables.indexPrefix);
+
+   if (variables.hasOwnProperty('indexName'))
+      this._registry.set('properties', 'indexName', variables.indexName);
+
   }
 
   /**
@@ -79,9 +83,13 @@ class ElasticsearchStorageHandler extends EntityStorageHandler {
 
   /**
   * Returns default index name for entity.
+  *
+  * @return index name
+  *   Defaults to entity type id
   */
   getStorageIndexName() {
-    return this.getStorageIndexPrefix() + this.getEntityTypeId();
+    return this.getStorageIndexPrefix() +
+      this._registry.get('properties', 'indexName', this.getEntityTypeId());
   }
 
   /**

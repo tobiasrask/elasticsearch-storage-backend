@@ -305,7 +305,8 @@ class ElasticsearchStorageBackend extends StorageBackend {
   * @param callback
   */
   select(variables, callback) {
-    this.executeSelectQuery(variables, this.buildSelectQuery(variables), callback);
+    this.executeSelectQuery(variables,
+      this.buildSelectQuery(variables), callback);
   }
 
   /**
@@ -324,6 +325,10 @@ class ElasticsearchStorageBackend extends StorageBackend {
       query.index = this.prefixedIndexName(variables.index);
     else if (!query.hasOwnProperty('index'))
       query.index = this.getStorageIndexName();
+
+    if (variables.hasOwnProperty('fillTypeName'))
+      query.type = this.getStorageTypeName();
+
     return query;
   }
 
@@ -336,25 +341,15 @@ class ElasticsearchStorageBackend extends StorageBackend {
   */
   executeSelectQuery(variables, query, callback) {
     var self = this;
-    let elasticsearch = this._registry.get("properties", 'elasticsearch');
-    var resultHandler = (err, data) =>  {
-      if (err)
-        return callback(err);
-      console.log(data);
-      data.values = self.decodeMap(data.Items);
-      callback(null, data);
-    };
-
-    if (variables.hasOwnProperty('debug') && variables.debug)
-      EntitySystem.log("ESStorageBackend", JSON.stringify(query));
-
-    if (variables.method == 'scan') {
-      elasticsearch.scan(query, resultHandler);
-    } else if (variables.method == 'query') {
-      elasticsearch.query(query, resultHandler);
-    } else {
-      callback(new Error(`Unknown method: ${variables.method}`));
-    }
+    this.getElasticsearchInstance().search(query)
+    .then(resp => {
+      callback(null, resp);
+    })
+    .catch(err => {
+      EntitySystem.log("ESStorageBackend", err.toString(), 'error');
+      console.error(err);
+      callback(err)
+    });
   }
 
   /**
@@ -444,16 +439,16 @@ class ElasticsearchStorageBackend extends StorageBackend {
       return sequence.then(() => {
         EntitySystem.log("ESStorageBackend", `Creating index: ${indexData.title} ({indexData.indexName})`);
         return self.getElasticsearchInstance().indices.create({
-            index: indexData.indexName,
-            body: indexData.settings
+          index: indexData.indexName,
+          body: indexData.settings
         })
         .then(result => {
           EntitySystem.log("ESStorageBackend", `Index created: ${indexData.title} (${indexData.indexName})`);
-          console.log(`Index created: ${indexData.title} (${indexData.indexName})`);
           return Promise.resolve();
         })
         .catch(err => {
           EntitySystem.log("ESStorageBackend", err.toString(), 'error');
+          console.error(err);
           return Promise.resolve();
         });
       });
@@ -544,7 +539,7 @@ class ElasticsearchStorageBackend extends StorageBackend {
     .then(() => {
       setTimeout(() => {
         callback(null);
-      }, 2000);
+      }, 3000);
     })
     .catch(err => {
       callback(err);

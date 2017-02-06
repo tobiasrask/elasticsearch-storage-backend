@@ -5,12 +5,52 @@ import equal from 'deep-equal'
 import util from 'util'
 import elasticsearch from 'elasticsearch'
 
+const entityTypeId = 'node';
+const indexName = 'entity';
+
 const DB_SCHEMAS = {
   indices: [
     {
       title: "Test entity",
       description: "Test entity",
-      settings: {}
+      name: indexName,
+      settings: {
+        "analysis": {
+          "analyzer": {
+            "finnish_compound": {
+              "type": "custom",
+              "tokenizer": "standard",
+              "filter": [
+                "lowercase",
+                "finnish_decompounder"
+              ]
+            },
+            "finnish_compound_snowball": {
+              "type": "custom",
+              "tokenizer": "standard",
+              "filter": [
+                "lowercase",
+                "finnish_decompounder",
+                "finnish_snowball"
+              ]
+            }
+          },
+          "filter": {
+            "finnish_decompounder": {
+              "type": "dictionary_decompounder",
+              "word_list": ["test"],
+              "min_word_size": 2,
+              "min_subword_size": 2,
+              "max_subword_size": 15,
+              "only_longest_match": false
+            },
+            "finnish_snowball": {
+              "type": "snowball",
+              "language": "Finnish"
+            }
+          }
+        }
+      }
     }
   ],
   mappings: [
@@ -18,9 +58,14 @@ const DB_SCHEMAS = {
       title: "Test mapping",
       description: 'First test mapping',
       type: "test",
+      index: "entity",
       data: {
         properties: {
           event_id: {
+            "type": "string",
+            "index": "not_analyzed"
+          },
+          test_id: {
             "type": "string",
             "index": "not_analyzed"
           }
@@ -36,7 +81,7 @@ const connectionParams = {
 
 // Our test entity
 // TODO: Make generic version
-const entityTypeId = 'test';
+
 let backend = null;
 let handler = null;
 
@@ -44,17 +89,26 @@ describe('Elasticsearch as entity api backend', function() {
   this.timeout(20000);
 
   before(function() {
-
     // Create storage backend
     backend = new ElasticsearchStorageBackend({
       elasticsearch: new elasticsearch.Client(Object.assign(connectionParams))
     });
-
     handler = new ElasticsearchStorageHandler({
-        entityTypeId: entityTypeId,
-        storage: backend,
-        schemaData: DB_SCHEMAS
-      });
+      entityTypeId: entityTypeId,
+      indexName: indexName,
+      storage: backend,
+      schemaData: DB_SCHEMAS
+    });
+  });
+
+  describe('Schema uninstallation', () => {
+    it('It should uninstall schemas if exists', done => {
+      handler.uninstall()
+      .then(result => {
+        done();
+      })
+      .catch(done);
+    })
   });
 
   describe('Schema installation', () => {
@@ -69,12 +123,9 @@ describe('Elasticsearch as entity api backend', function() {
 
   describe('loadEntityContainers', () => {
     it('Should load large number of items as a patch', done => {
-
       backend.loadEntityContainers([{ entity_id: 123 }], (err, result) => {
         if (err)
           return done(err);
-
-        console.log("RESULT: ", result);
         done();
       });
     })
@@ -133,4 +184,28 @@ describe('Elasticsearch as entity api backend', function() {
       .catch(done);
     })
   });
+
+  describe('Search & select', () => {
+    it('Should load perform serach and return data', done => {
+      let params = {
+        fillTypeName: true,
+        query: { match_all: {} }
+      };
+      backend.select(params, (err, result) => {
+        if (err)
+          return done(err);
+
+        if (!params.query.hasOwnProperty('index') ||
+             params.query.index != indexName)
+          return done(new Error("It didn't fill index name for select query"));
+
+        if (!params.query.hasOwnProperty('type') ||
+             params.query.type != entityTypeId)
+          return done(new Error("It didn't fill type name for select query"));
+
+        done();
+      });
+    })
+  });
+
 });
