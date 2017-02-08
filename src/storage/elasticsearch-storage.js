@@ -438,7 +438,12 @@ class ElasticsearchStorageBackend extends StorageBackend {
     return indices.reduce((sequence, indexData) => {
       return sequence.then(() => {
         EntitySystem.log("ESStorageBackend", `Creating index: ${indexData.title} ({indexData.indexName})`);
+
+        // Allow alter for index data
         return self.prepareIndiceForInstall(indexData)
+        .then(() => {
+          return this.getStorageHandler().prepareIndiceForInstall(indexData)
+        })
         .then(() => {
           return self.getElasticsearchInstance().indices.create({
             index: indexData.indexName,

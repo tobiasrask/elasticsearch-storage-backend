@@ -105,6 +105,17 @@ class ElasticsearchStorageHandler extends EntityStorageHandler {
   getStorageTypeName() {
     return this.getEntityTypeId();
   }
+
+  /**
+  * Hook to prepare index data to be installed. This allows us to fork and apply
+  * data for indice before it will be installed.
+  *
+  * @param indexData
+  * @return promise
+  */
+  prepareIndiceForInstall(indexData) {
+    return Promise.resolve();
+  }
 }
 
 export default ElasticsearchStorageHandler;
