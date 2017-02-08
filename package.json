@@ -1,6 +1,6 @@
 {
   "name": "elasticsearch-storage-backend",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Elasticsearch storage backend for Entity API.",
   "main": "lib/index.js",
   "scripts": {
