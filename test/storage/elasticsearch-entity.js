@@ -40,7 +40,9 @@ const DB_SCHEMAS = {
 }
 
 const connectionParams = {
-  host: "http://127.0.0.1:9200"
+  host: "http://127.0.0.1:9200",
+  apiVersion: "5.0",
+  log: 'trace'
 };
 
 // Our test entity
@@ -153,7 +155,13 @@ describe('Elasticsearch as entity api backend', function() {
     it('Should load perform serach and return data', done => {
       let params = {
         fillTypeName: true,
-        query: { match_all: {} }
+        query: {
+          body: {
+            query: {
+              match_all: {}
+            }
+          }
+        }
       };
       backend.select(params, (err, result) => {
         if (err)

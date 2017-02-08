@@ -438,9 +438,12 @@ class ElasticsearchStorageBackend extends StorageBackend {
     return indices.reduce((sequence, indexData) => {
       return sequence.then(() => {
         EntitySystem.log("ESStorageBackend", `Creating index: ${indexData.title} ({indexData.indexName})`);
-        return self.getElasticsearchInstance().indices.create({
-          index: indexData.indexName,
-          body: indexData.settings
+        return self.prepareIndiceForInstall(indexData)
+        .then(() => {
+          return self.getElasticsearchInstance().indices.create({
+            index: indexData.indexName,
+            body: indexData.settings
+          })
         })
         .then(result => {
           EntitySystem.log("ESStorageBackend", `Index created: ${indexData.title} (${indexData.indexName})`);
@@ -453,6 +456,17 @@ class ElasticsearchStorageBackend extends StorageBackend {
         });
       });
     }, Promise.resolve());
+  }
+
+  /**
+  * Hook to prepare index data to be installed. This allows us to fork and apply
+  * data for indice before it will be installed.
+  *
+  * @param indexData
+  * @return promise
+  */
+  prepareIndiceForInstall(indexData) {
+    return Promise.resolve();
   }
 
   /**
