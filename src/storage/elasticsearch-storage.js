@@ -445,6 +445,8 @@ class ElasticsearchStorageBackend extends StorageBackend {
         .then(() => {
           return self.getElasticsearchInstance().indices.create({
             index: indexData.indexName,
+            timeout: "5m",
+            masterTimeout: "5m",
             body: indexData.settings
           })
         })
