@@ -485,9 +485,22 @@ class ElasticsearchStorageBackend extends StorageBackend {
           return this.getStorageHandler().prepareIndiceForUpdate(indexData)
         })
         .then(() => {
+          EntitySystem.log("ESStorageBackend", `Closing index: ${indexData.title} ({indexData.indexName})`);
+          return self.getElasticsearchInstance().indices.close({
+            index: indexData.indexName
+          })
+        })
+        .then(() => {
+          EntitySystem.log("ESStorageBackend", `Perform update for index: ${indexData.title} ({indexData.indexName})`);
           return self.getElasticsearchInstance().indices.putSettings({
             index: indexData.indexName,
             body: indexData.settings
+          })
+        })
+        .then(() => {
+          EntitySystem.log("ESStorageBackend", `Opening index: ${indexData.title} ({indexData.indexName})`);
+          return self.getElasticsearchInstance().indices.open({
+            index: indexData.indexName
           })
         })
         .then(result => {
