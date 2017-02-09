@@ -406,8 +406,6 @@ class ElasticsearchStorageBackend extends StorageBackend {
   installSchemas(schemas, options, callback) {
     let self = this;
     let errors = false;
-
-    // Create indices and mappings
     this.installIndices(schemas.indices)
     .then(() => {
       return this.installMappings(schemas.mappings);
@@ -464,6 +462,49 @@ class ElasticsearchStorageBackend extends StorageBackend {
   }
 
   /**
+  * Update indices settings.
+  *
+  * @param index
+  * @param options
+  * @return promise
+  */
+  updateIndices(indices = [], options = {}) {
+    let self = this;
+    EntitySystem.log("ESStorageBackend", `Udate indices`);
+
+    if (!indices.length)
+      return Promise.resolve();
+
+    return indices.reduce((sequence, indexData) => {
+      return sequence.then(() => {
+        EntitySystem.log("ESStorageBackend", `Updating index: ${indexData.title} ({indexData.indexName})`);
+
+        // Allow alter for index data
+        return self.prepareIndiceForUpdate(indexData)
+        .then(() => {
+          return this.getStorageHandler().prepareIndiceForUpdate(indexData)
+        })
+        .then(() => {
+          return self.getElasticsearchInstance().indices.putSettings({
+            index: indexData.indexName,
+            body: indexData.settings
+          })
+        })
+        .then(result => {
+          EntitySystem.log("ESStorageBackend", `Index updated: ${indexData.title} (${indexData.indexName})`);
+          return Promise.resolve();
+        })
+        .catch(err => {
+          EntitySystem.log("ESStorageBackend", err.toString(), 'error');
+          console.error(err);
+          return Promise.resolve();
+        });
+      });
+    }, Promise.resolve());
+  }
+
+
+  /**
   * Hook to prepare index data to be installed. This allows us to fork and apply
   * data for indice before it will be installed.
   *
@@ -471,6 +512,17 @@ class ElasticsearchStorageBackend extends StorageBackend {
   * @return promise
   */
   prepareIndiceForInstall(indexData) {
+    return Promise.resolve();
+  }
+
+  /**
+  * Hook to prepare index data to be updated. This allows us to fork and apply
+  * data for indice before it will be installed.
+  *
+  * @param indexData
+  * @return promise
+  */
+  prepareIndiceForUpdate(indexData) {
     return Promise.resolve();
   }
 
@@ -513,7 +565,7 @@ class ElasticsearchStorageBackend extends StorageBackend {
   }
 
   /**
-  * Update schema
+  * Update indice schemas
   *
   * @param scema
   *   Install one or more schemas
@@ -521,7 +573,15 @@ class ElasticsearchStorageBackend extends StorageBackend {
   * @param callback
   */
   updateSchemas(schemas, options, callback) {
-    callback(null);
+    let self = this;
+    let errors = false;
+    this.updateIndices(schemas.indices)
+    .then(() => {
+      callback(null);
+    })
+    .catch(err => {
+      callback(err);
+    });
   }
 
   /**

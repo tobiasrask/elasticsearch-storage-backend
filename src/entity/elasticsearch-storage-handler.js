@@ -116,6 +116,17 @@ class ElasticsearchStorageHandler extends EntityStorageHandler {
   prepareIndiceForInstall(indexData) {
     return Promise.resolve();
   }
+
+  /**
+  * Hook to prepare index data to be updated. This allows us to fork and apply
+  * data for indice before it will be installed.
+  *
+  * @param indexData
+  * @return promise
+  */
+  prepareIndiceForUpdate(indexData) {
+    return Promise.resolve();
+  }
 }
 
 export default ElasticsearchStorageHandler;
