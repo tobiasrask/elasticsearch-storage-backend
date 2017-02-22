@@ -447,6 +447,7 @@ class ElasticsearchStorageBackend extends StorageBackend {
             index: indexData.indexName,
             timeout: "5m",
             masterTimeout: "5m",
+            waitForActiveShards: "1",
             body: indexData.settings
           })
         })
@@ -580,6 +581,44 @@ class ElasticsearchStorageBackend extends StorageBackend {
   }
 
   /**
+  * Update mappings.
+  *
+  * @param mappings
+  * @return promise
+  */
+  updateMappings(mappings = []) {
+    let self = this;
+    EntitySystem.log("ESStorageBackend", `Update mappings`);
+
+    if (!mappings.length)
+      return Promise.resolve();
+
+    return mappings.reduce((sequence, mappingData) => {
+      return sequence.then(() => {
+        EntitySystem.log("ESStorageBackend", `Updating mapping: ${mappingData.title} ({mappingData.typeName})`);
+
+        let body = {};
+        body[mappingData.typeName] = mappingData.data;
+
+        return self.getElasticsearchInstance().indices.putMapping({
+            index: mappingData.indexName,
+            type: mappingData.typeName,
+            update_all_types: true,
+            body: body
+        })
+        .then(result => {
+          EntitySystem.log("ESStorageBackend", `Mapping updated: ${mappingData.title} (${mappingData.typeName})`);
+          return Promise.resolve();
+        })
+        .catch(err => {
+          EntitySystem.log("ESStorageBackend", err.toString(), 'error');
+          throw new Error("Unable to update mapping");
+        });
+      });
+    }, Promise.resolve());
+  }
+
+  /**
   * Update indice schemas
   *
   * @param scema
@@ -591,6 +630,9 @@ class ElasticsearchStorageBackend extends StorageBackend {
     let self = this;
     let errors = false;
     this.updateIndices(schemas.indices)
+    .then(() => {
+      return this.updateMappings(schemas.mappings);
+    })
     .then(() => {
       callback(null);
     })
